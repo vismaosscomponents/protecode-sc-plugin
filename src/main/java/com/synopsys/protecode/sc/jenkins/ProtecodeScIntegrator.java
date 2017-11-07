@@ -1,54 +1,22 @@
 /*******************************************************************************
-* Copyright (c) 2016 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
+ * Copyright (c) 2016 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ *******************************************************************************/
 
 package com.synopsys.protecode.sc.jenkins;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
-import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
-import org.apache.commons.lang.StringUtils;
-import org.apache.tools.ant.DirectoryScanner;
-import org.jenkinsci.remoting.RoleChecker;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.ImmutableMap;
-import com.synopsys.protecode.sc.jenkins.HttpApiConnector.PollResult;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.FilePath.FileCallable;
@@ -65,46 +33,20 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.remoting.RoleChecker;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProtecodeScIntegrator extends Notifier {
-
-    private static class ApiPoller {
-        private String id;
-        private boolean scanned;
-        private HttpApiConnector connector;
-        private PollResult result;
-
-        ApiPoller(HttpApiConnector connector, String id) {
-            this.connector = connector;
-
-            this.id = id;
-        }
-
-        boolean isScanned() {
-            return scanned;
-        }
-
-        PollResult poll() {
-
-            result = connector.poll(id);
-            if (result.isReady()) {
-                scanned = true;
-            }
-            return result;
-        }
-
-        public PollResult getResult() {
-            return result;
-        }
-
-        HttpApiConnector getConnector() {
-            return connector;
-        }
-
-    }
 
     private String protecodeScGroup;
     private String credentialsId;
@@ -116,15 +58,15 @@ public class ProtecodeScIntegrator extends Notifier {
 
     @DataBoundConstructor
     public ProtecodeScIntegrator(String credentialsId, String protecodeScGroup,
-            boolean failIfVulns, String artifactDir, boolean convertToSummary,
-            boolean leaveArtifacts, int scanTimeout) {
+                                 boolean failIfVulns, String artifactDir, boolean convertToSummary,
+                                 boolean leaveArtifacts, int scanTimeout) {
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.artifactDir = artifactDir;
         this.convertToSummary = convertToSummary;
         this.failIfVulns = failIfVulns;
         this.leaveArtifacts = leaveArtifacts;
-        this.scanTimeout = scanTimeout > 10 ? scanTimeout : 10;
+        this.scanTimeout = scanTimeout > 60 ? scanTimeout : 60;
     }
 
     public String getProtecodeScGroup() {
@@ -139,7 +81,9 @@ public class ProtecodeScIntegrator extends Notifier {
         return artifactDir;
     }
 
-    public int getScanTimeout() { return scanTimeout; }
+    public int getScanTimeout() {
+        return scanTimeout;
+    }
 
     public boolean isConvertToSummary() {
         return convertToSummary;
@@ -165,12 +109,31 @@ public class ProtecodeScIntegrator extends Notifier {
         return true;
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    @Override
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
+                           BuildListener listener) throws InterruptedException, IOException {
+        PrintStream log = listener.getLogger();
+
+        ProtecodeScanRunner runner = new ProtecodeScanRunner(getDescriptor(), credentialsId, protecodeScGroup,
+                artifactDir, scanTimeout, convertToSummary, leaveArtifacts
+                , failIfVulns);
+        return runner.perform(new BuildInformationAdapter(build),
+                new MyArtifactsProvider(build, log, artifactDir),
+                listener.getLogger());
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return new DescriptorImpl();
+    }
+
     @SuppressWarnings("serial")
     private static final class FileReader implements FileCallable<File> {
 
         @Override
         public void checkRoles(RoleChecker arg0) throws SecurityException {
-          // intentionally left empty
+            // intentionally left empty
         }
 
         @Override
@@ -181,280 +144,71 @@ public class ProtecodeScIntegrator extends Notifier {
 
     }
 
-    @SuppressWarnings("serial")
-    private static class ScanFileFilter implements FileFilter, Serializable {
+    public static final class MyArtifactsProvider implements ArtifactsProvider {
+        private final AbstractBuild<?, ?> build;
+        private final PrintStream log;
+        private final String artifactDir;
+
+        public MyArtifactsProvider(AbstractBuild<?, ?> build, PrintStream log, String artifactDir) {
+            this.build = build;
+            this.log = log;
+            this.artifactDir = artifactDir;
+        }
 
         @Override
-        public boolean accept(File pathname) {
-            return pathname.isFile();
-
-        }
-    }
-
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private List<Artifact> getArtifacts(AbstractBuild<?, ?> build,
-            BuildListener listener) throws IOException, InterruptedException {
-        PrintStream log = listener.getLogger();
-        List<Artifact> artifacts = new ArrayList<>();
-        if (!StringUtils.isEmpty(artifactDir)) {
-            List<FilePath> files = build.getWorkspace().child(artifactDir)
-                    .list(new ScanFileFilter());
-            if (files != null) {
-                for (FilePath file : files) {
-                    artifacts.add(new Artifact(file));
-                    log.println("Adding file " + file.getName()
-                            + " for Protecode SC scan");
-                }
-            } else {
-                log.println(String.format("Could not get additional artifacts from %s", artifactDir));
-            }
-        }
-
-        List<? extends Run<?, ?>.Artifact> buildArtifacts = build
-                .getArtifacts();
-        for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-            artifacts.add(new Artifact(buildArtifact.getFile()));
-        }
-
-        return artifacts;
-    }
-
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
-            BuildListener listener) throws InterruptedException, IOException {
-        PrintStream log = listener.getLogger();
-        log.println("Getting Protecode SC host and credentials");
-        DescriptorImpl desc = getDescriptor();
-        String host = desc.getProtecodeScHost();
-
-        StandardUsernamePasswordCredentials creds = CredentialsMatchers
-                .firstOrNull(
-                        CredentialsProvider.lookupCredentials(
-                                StandardUsernamePasswordCredentials.class,
-                                Jenkins.getInstance(), ACL.SYSTEM,
-                                new HostnameRequirement(host)),
-                        CredentialsMatchers.withId(credentialsId));
-        if (creds == null) {
-            log.println("No Protecode SC credentials found");
-            return false;
-        }
-        String protecodeScUser = creds.getUsername();
-        String protecodeScPass = creds.getPassword().getPlainText();
-
-        log.println("Connecting to Protecode SC host at " + host + " as "
-                + protecodeScUser);
-        boolean dontCheckCert = desc.isDontCheckCert();
-        final List<Artifact> artifacts = getArtifacts(build, listener);
-        List<ApiPoller> identifiers = new ArrayList<>();
-        for (Artifact artifact : artifacts) {
-            log.println("Scanning artifact " + artifact.getName());
-            HttpApiConnector connector = new HttpApiConnector(
-                    listener.getLogger(), artifact, host, protecodeScGroup,
-                    protecodeScUser, protecodeScPass, dontCheckCert);
-            Map<String, String> scanMetadata = ImmutableMap.of("build-id",
-                    "" + build.getNumber(), "build-url",
-                    build.getAbsoluteUrl());
-            try {
-                connector.init();
-                String protecodeScIdentifier = connector.sendFile(artifact, scanMetadata);
-                identifiers
-                        .add(new ApiPoller(connector, protecodeScIdentifier));
-            } catch (KeyManagementException | NoSuchAlgorithmException e) {
-                throw new IOException(e);
-            } catch (ApiAuthenticationException e) {
-                log.println(e.getMessage());
-                log.println("Failed to scan artifact");
-                return false;
-            } catch (ApiException e) {
-                log.println(e.getMessage());
-                return false;
-            }
-        }
-        if (identifiers.isEmpty()) {
-            log.println("No artifacts to scan!!");
-            return false;
-        }
-
-        long stop = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
-        boolean poll = true;
-        log.println("Waiting for scans to complete");
-        while (poll) {
-            boolean resultsLeft = false;
-            for (ApiPoller poller : identifiers) {
-                if (!poller.isScanned()) {
-
-                    PollResult p = null;
-
-                    p = poller.poll();
-
-                    if (p != null && !p.isReady()) {
-                        resultsLeft = true;
+        public List<Artifact> getArtifacts() throws IOException, InterruptedException {
+            List<Artifact> artifacts = new ArrayList<>();
+            if (!StringUtils.isEmpty(artifactDir)) {
+                List<FilePath> files = build.getWorkspace().child(artifactDir)
+                        .list(new ScanFileFilter());
+                if (files != null) {
+                    for (FilePath file : files) {
+                        artifacts.add(new Artifact(file));
+                        log.println("Adding file " + file.getName()
+                                + " for Protecode SC scan");
                     }
+                } else {
+                    log.println(String.format("Could not get additional artifacts from %s", artifactDir));
                 }
             }
-            if (System.currentTimeMillis() > stop || !resultsLeft) {
-                poll = false;
+
+            List<? extends Run<?, ?>.Artifact> buildArtifacts = build
+                    .getArtifacts();
+            for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+                artifacts.add(new Artifact(buildArtifact.getFile()));
             }
-            if (poll) {
-                Thread.sleep(10 * 1000);
-            }
-        }
 
-        FilePath jsonReportDirectory = build.getWorkspace().child("reports");
-        jsonReportDirectory.mkdirs();
-        if (!jsonReportDirectory.isDirectory()) {
-            log.println("Report directory could not be created.");
-            return false;
-        }
-
-        ObjectMapper mapper = getObjectMapper();
-        for (ApiPoller poller : identifiers) {
-            writeJson(log, mapper, jsonReportDirectory, poller.getResult());
-        }
-        boolean vulns = false;
-        for (ApiPoller poller : identifiers) {
-            PollResult r = poller.getResult();
-            poller.getConnector().close();
-            if (r == null || !r.isOk()) {
-                if (r == null) {
-                    log.println("No Protecode SC result available");
-                }
-                vulns = true;
-            }
-        }
-        if (convertToSummary) {
-            convertToSummary(log, build, jsonReportDirectory);
-        }
-        if (!leaveArtifacts && !StringUtils.isEmpty(artifactDir)) {
-            build.getWorkspace().child(artifactDir).deleteContents();
-        }
-        return !(vulns && failIfVulns);
-    }
-
-    private static final String PROTECODE_FILE_TAG = "protecodesc";
-
-    private static void convertToSummary(PrintStream log,
-            AbstractBuild<?, ?> build, FilePath jsonReportDirectory) throws IOException, InterruptedException {
-        log.println("Creating xml for summary plugin");
-        ObjectMapper mapper = getObjectMapper();
-        try {
-            FilePath[] jsonFiles = jsonReportDirectory.list("*-" + PROTECODE_FILE_TAG + ".json");
-            log.println(jsonFiles.length + " files found");
-            File xmlReportDir = build.getArtifactsDir();
-            if (!xmlReportDir.exists()) {
-                boolean xmlReportDirCreated = xmlReportDir.mkdirs();
-                if (!xmlReportDirCreated) {
-                    log.println("XML report directory could not be created.");
-                    throw new IOException("XML report directory could not be created.");
-                }
-            }
-            File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
-
-            log.println("Creating xml report to " + xmlFile.getName());
-
-            OutputStream out = new BufferedOutputStream(
-                    new FileOutputStream(xmlFile));
-            createXmlReport(jsonFiles, mapper, out);
-            out.close();
-        } catch (NullPointerException e) {
-            // NOP
+            return artifacts;
         }
     }
 
-    static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
-            OutputStream xmlFile) throws IOException, InterruptedException {
+    public static final class BuildInformationAdapter implements BuildInformation {
 
-        PrintStream out = new PrintStream(xmlFile, false, "UTF-8");
-        out.println(
-                "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
-        for (FilePath jsonFile : jsonFiles) {
-            try (InputStream in = new BufferedInputStream(jsonFile.read())) {
-                ProtecodeSc psc = mapper.readValue(in, ProtecodeSc.class);
-                Long exact = psc.getResults().getSummary().getVulnCount()
-                        .getExact();
-                String verdict = psc.getResults().getSummary().getVerdict()
-                        .getShortDesc();
-                String verdict_detailed = psc.getResults().getSummary().getVerdict()
-                        .getDetailed();
-                out.println("<accordion name =\"" + psc.getArtifactName()
-                        + " (" + verdict + ")\">");
+        private final AbstractBuild<?, ?> build;
 
-                Color color = exact > 0L ? Color.RED : Color.GREEN;
-                writeField(out, "Verdict", verdict_detailed, color);
-                writeField(out, "Vulnerabilities", exact.toString(), Color.BLACK);
-                writeField(out, "Report", "", Color.BLACK,
-                                "<a target=\"_blank\" href=\""
-                                + psc.getResults().getReport_url()
-                                + "\">View full report in Protecode SC </a>");
-                out.println("</accordion>");
-            }
-        }
-        out.println("</section>");
-        out.close();
-    }
-
-    private static enum Color {
-        RED("#ff0000"), GREEN("#00ff00"), YELLOW("#ff9c00"), BLACK("#000000");
-
-        private String value;
-
-        private Color(String value) {
-            this.value = value;
+        public BuildInformationAdapter(AbstractBuild<?, ?> build) {
+            this.build = build;
         }
 
-        String getValue() {
-            return value;
+        @Override
+        public File getArtifactsDir() {
+            return build.getArtifactsDir();
         }
-    }
 
-    private static void writeField(PrintStream out, String name, String value,
-            Color valueColor) {
-        writeField(out, name, value, valueColor, null);
-    }
-
-    private static void writeField(PrintStream out, String name, String value,
-            Color valueColor, String cdata) {
-        out.append("<field name=\"" + name + "\" titlecolor=\"black\" value=\""
-                + value + "\" ");
-        out.append("detailcolor=\"" + valueColor.getValue() + "\">\n");
-        if (cdata != null && !cdata.isEmpty()) {
-            out.print("<![CDATA[");
-            out.print(cdata);
-            out.print("]]>");
+        @Override
+        public FilePath getWorkspace() {
+            return build.getWorkspace();
         }
-        out.append("</field>\n");
-    }
 
-    private static ObjectMapper getObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setSerializationInclusion(Include.NON_NULL);
-        mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        return mapper;
-    }
-
-    private static void writeJson(PrintStream log, ObjectMapper mapper,
-            FilePath workspaceJsonReportDirectory, PollResult result) {
-        if (result == null || result.getProtecodeSc() == null) {
-            log.println("No scan result!!");
-            return;
+        @Override
+        public int getNumber() {
+            return build.getNumber();
         }
-        FilePath jsonFile = workspaceJsonReportDirectory.child(
-                result.getArtifactName() + "-" + PROTECODE_FILE_TAG + ".json");
 
-        try (OutputStream out = new BufferedOutputStream(jsonFile.write())) {
-            mapper.writeValue(out, result.getProtecodeSc());
-        } catch (IOException e) {
-            log.println(e.toString());
-        } catch (InterruptedException e) {
-            log.println(e.toString());
+        @Override
+        public String getAbsoluteUrl() {
+            return build.getAbsoluteUrl();
         }
-    }
-
-    @Override
-    public DescriptorImpl getDescriptor() {
-        return new DescriptorImpl();
     }
 
     // This indicates to Jenkins that this is an implementation of an extension
