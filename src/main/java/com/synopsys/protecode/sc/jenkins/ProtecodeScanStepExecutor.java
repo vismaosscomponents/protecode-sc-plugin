@@ -4,6 +4,10 @@ import hudson.AbortException;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import org.apache.commons.io.filefilter.AndFileFilter;
+import org.apache.commons.io.filefilter.FileFileFilter;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
@@ -58,10 +62,16 @@ public class ProtecodeScanStepExecutor extends SynchronousNonBlockingStepExecuti
         PrintStream logger = getContext().get(TaskListener.class).getLogger();
         Run run = getContext().get(Run.class);
 
+        IOFileFilter fileFilter = FileFileFilter.FILE;
+        String artifactsFilter = protecodeScanStep.getArtifactsFilter();
+        if (!StringUtils.isEmpty(artifactsFilter)) {
+            fileFilter = new AndFileFilter(fileFilter, new WildcardFileFilter(artifactsFilter));
+        }
+
         List<Artifact> artifacts = new ArrayList<>();
         if (!StringUtils.isEmpty(protecodeScanStep.getArtifactDir())) {
             List<FilePath> files = workspace.child(protecodeScanStep.getArtifactDir())
-                    .list(new ScanFileFilter());
+                    .list(fileFilter);
             if (files != null) {
                 for (FilePath file : files) {
                     artifacts.add(new Artifact(file));
@@ -76,7 +86,12 @@ public class ProtecodeScanStepExecutor extends SynchronousNonBlockingStepExecuti
         if (protecodeScanStep.isScanAllArchivedArtifacts()) {
             List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
             for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-                artifacts.add(new Artifact(buildArtifact.getFile()));
+                File buildArtifactFile = buildArtifact.getFile();
+                if (fileFilter.accept(buildArtifactFile)) {
+                    artifacts.add(new Artifact(buildArtifactFile));
+                    logger.println("Adding file " + buildArtifactFile.getName()
+                            + " for Protecode SC scan");
+                }
             }
         }
         return artifacts;

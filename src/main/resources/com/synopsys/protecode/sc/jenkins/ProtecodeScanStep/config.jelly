@@ -32,6 +32,10 @@
       <f:textbox />
   </f:entry>
 
+  <f:entry title="Artifact filter" field="artifactsFilter">
+      <f:textbox />
+  </f:entry>
+
   <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
     <f:textbox />
   </f:entry>

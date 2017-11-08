@@ -20,6 +20,7 @@ public class ProtecodeScanStep extends Step {
     private String protecodeScGroup;
     private String credentialsId;
     private String artifactDir;
+    private String artifactsFilter;
     private boolean scanAllArchivedArtifacts;
     private boolean convertToSummary;
     private boolean failIfVulns;
@@ -85,6 +86,16 @@ public class ProtecodeScanStep extends Step {
     @DataBoundSetter
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
+    }
+
+
+    public String getArtifactsFilter() {
+        return artifactsFilter;
+    }
+
+    @DataBoundSetter
+    public void setArtifactsFilter(String artifactsFilter) {
+        this.artifactsFilter = artifactsFilter;
     }
 
     @Override
