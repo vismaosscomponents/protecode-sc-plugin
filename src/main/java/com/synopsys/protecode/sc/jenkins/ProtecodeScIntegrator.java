@@ -12,9 +12,9 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
@@ -36,14 +36,15 @@ import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.remoting.RoleChecker;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProtecodeScIntegrator extends Notifier {
@@ -244,19 +245,18 @@ public class ProtecodeScIntegrator extends Notifier {
             return super.configure(req, formData);
         }
 
-        public ListBoxModel doFillCredentialsIdItems(
-                @AncestorInPath Item context) {
-
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.withEmptySelection();
-            result.withMatching(
-                    CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
-                            StandardUsernamePasswordCredentials.class)),
-                    CredentialsProvider.lookupCredentials(
-                            StandardUsernamePasswordCredentials.class, context,
+        public ListBoxModel doFillCredentialsIdItems() {
+            Item item = Stapler.getCurrentRequest().findAncestorObject(Item.class);
+            return new StandardUsernameListBoxModel()
+                    .includeEmptyValue()
+                    .includeMatchingAs(
                             ACL.SYSTEM,
-                            new HostnameRequirement(protecodeScHost)));
-            return result;
+                            item,
+                            StandardUsernamePasswordCredentials.class,
+                            Collections.<DomainRequirement>singletonList(new HostnameRequirement(protecodeScHost)),
+                            CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
+                                    StandardUsernamePasswordCredentials.class))
+                    );
         }
 
         @Override

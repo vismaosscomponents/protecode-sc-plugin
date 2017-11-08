@@ -11,6 +11,7 @@
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
 
+  <st:adjunct includes="lib.credentials.select.select"/>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select/>
   </f:entry>

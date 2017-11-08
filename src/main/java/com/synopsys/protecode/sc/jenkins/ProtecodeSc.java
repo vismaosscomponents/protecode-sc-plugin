@@ -1,22 +1,22 @@
 /*******************************************************************************
-* Copyright (c) 2016 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
+ * Copyright (c) 2016 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ *******************************************************************************/
 
 package com.synopsys.protecode.sc.jenkins;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ProtecodeSc {
 
@@ -66,6 +66,10 @@ public class ProtecodeSc {
         }
     }
 
+    public static class CustomData
+    {
+    }
+
     public static class Results {
 
         private Integer id;
@@ -81,6 +85,19 @@ public class ProtecodeSc {
         private String report_url;
 
         private Details details;
+
+        private String filename;
+
+        private Integer product_id;
+
+        private String last_updated;
+
+        @JsonProperty("rescan-possible")
+        private boolean rescanPossible;
+
+        private boolean stale;
+
+        private Map<String, String> custom_data;
 
         public Summary getSummary() {
             return summary;
@@ -110,6 +127,29 @@ public class ProtecodeSc {
             return details;
         }
 
+        public String getFilename() {
+            return filename;
+        }
+
+        public Integer getProduct_id() {
+            return product_id;
+        }
+
+        public String getLast_updated() {
+            return last_updated;
+        }
+
+        public boolean isRescanPossible() {
+            return rescanPossible;
+        }
+
+        public boolean isStale() {
+            return stale;
+        }
+
+        public Map<String, String> getCustom_data() {
+            return custom_data;
+        }
     }
 
     public static class Summary {
@@ -125,6 +165,7 @@ public class ProtecodeSc {
         public VulnCount getVulnCount() {
             return vulnCount;
         }
+
     }
 
     public static class Verdict {
@@ -163,84 +204,353 @@ public class ProtecodeSc {
         }
     }
 
+    public static class ExtendedObject {
+        private Double confidence;
+        private String sha1;
+        private String name;
+        private long timestamp;
+        @JsonProperty("matching-method")
+        private String matchingMethod;
+        private Collection<String> fullpath;
+        private String type;
+        @JsonProperty("source-match")
+        private String sourceMatch;
+        @JsonProperty("binary-type")
+        private String binaryType;
+
+        public Double getConfidence() {
+            return confidence;
+        }
+
+        public String getSha1() {
+            return sha1;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public String getMatchingMethod() {
+            return matchingMethod;
+        }
+
+        public Collection<String> getFullpath() {
+            return fullpath;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getSourceMatch() {
+            return sourceMatch;
+        }
+
+        public String getBinaryType() {
+            return binaryType;
+        }
+    }
+
     public static class Component {
+        @JsonProperty("extended-objects")
+        private Collection<ExtendedObject> extendedObjects;
         private License license;
-        private Collection<String> tags;
-        private Collection<Vulns> vulns;
-        private String version;
         private String lib;
+        private Collection<String> tags;
+        private String url;
+        private Collection<String> cpe;
+        private Collection<Vuln> vulns;
+        private Boolean latest_cmp;
+        private String latest_version;
+        private String version;
+        private CoverityScan coverity_scan;
+        @JsonProperty("latest-version")
+        private String latestVersion;
+        private Collection<String> objects;
+        private String codetype;
+        private String short_version;
+        private String homepage;
         @JsonProperty("vuln-count")
         private VulnCount vulnCount;
-        @JsonProperty("custom_version")
-        private String customVersion;
-        private String subcomponent;
+        @JsonProperty("upstream-source")
+        private String upstreamSource;
+
+        public Collection<ExtendedObject> getExtendedObjects() {
+            return extendedObjects;
+        }
 
         public License getLicense() {
             return license;
-        }
-
-        public String getSubcomponent() {
-            return subcomponent;
-        }
-
-        public String getCustomVersion() {
-            return customVersion;
-        }
-
-        public Collection<String> getTags() {
-            return tags;
-        }
-
-        public Collection<Vulns> getVulns() {
-            return vulns;
-        }
-
-        public String getVersion() {
-            return version;
         }
 
         public String getLib() {
             return lib;
         }
 
+        public Collection<String> getTags() {
+            return tags;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public Collection<String> getCpe() {
+            return cpe;
+        }
+
+        public Collection<Vuln> getVulns() {
+            return vulns;
+        }
+
+        public Boolean getLatest_cmp() {
+            return latest_cmp;
+        }
+
+        public String getLatest_version() {
+            return latest_version;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public CoverityScan getCoverity_scan() {
+            return coverity_scan;
+        }
+
+        public String getLatestVersion() {
+            return latestVersion;
+        }
+
+        public Collection<String> getObjects() {
+            return objects;
+        }
+
+        public String getCodetype() {
+            return codetype;
+        }
+
+        public String getShort_version() {
+            return short_version;
+        }
+
+        public String getHomepage() {
+            return homepage;
+        }
+
         public VulnCount getVulnCount() {
             return vulnCount;
         }
+
+        public String getUpstreamSource() {
+            return upstreamSource;
+        }
     }
 
-    public static class Vulns {
+    public static class Details2 {
+        private Object loc;
+        private Object defect_density;
+        private Object build_date;
+        private String project_url;
+        private Object version;
+        private List<Object> cwe;
+
+        public Object getLoc() {
+            return loc;
+        }
+
+        public Object getDefect_density() {
+            return defect_density;
+        }
+
+        public Object getBuild_date() {
+            return build_date;
+        }
+
+        public String getProject_url() {
+            return project_url;
+        }
+
+        public Object getVersion() {
+            return version;
+        }
+
+        public List<Object> getCwe() {
+            return cwe;
+        }
+    }
+
+    public static class CoverityScan {
+        @JsonProperty("mapped-name")
+        private String mappedname;
+        private String name;
+        private String language;
+        private long id;
+        private String homepage_url;
+        private Details2 details;
+        private String repo_url;
+        private String slug;
+
+        public String getMappedname() {
+            return mappedname;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public long getId() {
+            return id;
+        }
+
+        public String getHomepage_url() {
+            return homepage_url;
+        }
+
+        public Details2 getDetails() {
+            return details;
+        }
+
+        public String getRepo_url() {
+            return repo_url;
+        }
+
+        public String getSlug() {
+            return slug;
+        }
+    }
+
+    public static class Vuln {
         private boolean exact;
-        private Vuln vuln;
+        private VulnDetails vuln;
+        @JsonProperty("timestamp-objects")
+        private Collection<String> timestampObjects;
 
         public boolean isExact() {
             return exact;
         }
 
-        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
-        public Vuln getVuln() {
+        public Collection<String> getTimestampObjects() {
+            return timestampObjects;
+        }
+
+        public VulnDetails getVuln() {
             return vuln;
         }
     }
 
-    public static class Vuln {
-        private String cve;
-        private String cvss;
+    public static class VulnDetails {
+        public String cve;
+        public Double cvss;
 
-        private String summary;
+        public String cvss_created;
+        public String cvss_access_complexity;
+        public String cvss2_vector;
+        public String cvss_source;
+        public String cwe;
+        @JsonProperty("cvss_created-epoch")
+        public String cvss_createdepoch;
+        @JsonProperty("modified-epoch")
+        public String modifiedepoch;
+        public String modified;
+        public String cvss_availability_impact;
+        public String summary;
 
-        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
+        public String cvss_authentication;
+        public String published;
+
+        public String cvss_confidentiality_impact;
+        public String cvss_access_vector;
+        @JsonProperty("published-epoch")
+        public String publishedepoch;
+        public String cvss_integrity_impact;
+
+
+        public String cvss3_score;
+
+        public String getCvss3_score() {
+            return cvss3_score;
+        }
+
         public String getCve() {
             return cve;
         }
 
-        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
-        public String getCvss() {
+        public Double getCvss() {
             return cvss;
         }
 
-        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
+        public String getCvss_created() {
+            return cvss_created;
+        }
+
+        public String getCvss_access_complexity() {
+            return cvss_access_complexity;
+        }
+
+        public String getCvss2_vector() {
+            return cvss2_vector;
+        }
+
+        public String getCvss_source() {
+            return cvss_source;
+        }
+
+        public String getCwe() {
+            return cwe;
+        }
+
+        public String getCvss_createdepoch() {
+            return cvss_createdepoch;
+        }
+
+        public String getModifiedepoch() {
+            return modifiedepoch;
+        }
+
+        public String getModified() {
+            return modified;
+        }
+
+        public String getCvss_availability_impact() {
+            return cvss_availability_impact;
+        }
+
         public String getSummary() {
             return summary;
+        }
+
+        public String getCvss_authentication() {
+            return cvss_authentication;
+        }
+
+        public String getPublished() {
+            return published;
+        }
+
+        public String getCvss_confidentiality_impact() {
+            return cvss_confidentiality_impact;
+        }
+
+        public String getCvss_access_vector() {
+            return cvss_access_vector;
+        }
+
+        public String getPublishedepoch() {
+            return publishedepoch;
+        }
+
+        public String getCvss_integrity_impact() {
+            return cvss_integrity_impact;
         }
     }
 
@@ -299,4 +609,39 @@ public class ProtecodeSc {
         }
     }
 
+    public static class Metadata {
+        /// <summary>
+        /// e.g. Android, OS X
+        /// </summary>
+        /// <returns></returns>
+        public String platform;
+        public int depth;
+        public String version;
+        public Object vendor;
+        /// <summary>
+        /// application name
+        /// </summary>
+        /// <returns></returns>
+        public String name;
+
+        public String getPlatform() {
+            return platform;
+        }
+
+        public int getDepth() {
+            return depth;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public Object getVendor() {
+            return vendor;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
 }

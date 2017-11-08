@@ -28,10 +28,10 @@ public class ProtecodeScanStep extends Step {
     private int scanTimeout = 10;
 
     @DataBoundConstructor
-    public ProtecodeScanStep(String protecodeScGroup, String credentialsId, boolean scanAllArchivedArtifacts, String artifactPath) {
+    public ProtecodeScanStep(String protecodeScGroup, String credentialsId, boolean scanAllArchivedArtifacts, String artifactDir) {
         this.scanAllArchivedArtifacts = scanAllArchivedArtifacts;
         this.protecodeScGroup = protecodeScGroup;
-        this.artifactDir = artifactPath;
+        this.artifactDir = artifactDir;
         this.credentialsId = credentialsId;
     }
 
