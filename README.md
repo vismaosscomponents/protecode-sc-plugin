@@ -9,7 +9,7 @@ http://www.synopsys.com/software/protecode/Pages/default.aspx
 
 ## Build instructions
 
-The plugin works with Jenkins 1.597 or newer and it is written to be Java 1.7
+The plugin is tested with Jenkins 2.7.3 or newer and it is written to be Java 1.7
 compatible.
 
 The plugin is built with Maven 3.x. The command to create the package to be
@@ -32,7 +32,7 @@ This will compile, test and package the plugin into an Jenkins plugin installati
 3. Restart Jenkins
 
 
-### Jenkins configuration
+## Jenkins configuration
 
 Configure system wide Protecode SC server address.
 
@@ -42,8 +42,9 @@ Configure system wide Protecode SC server address.
     - **Protecode SC: Disable certificate validation**
         - Allow connections to Protecode SC server without certificate validation. It is not recommended to use this option. Instead you should consider getting a valid certificate for your server.
 
-### Build configuration
+## Build configuration
 
+### Post-build action
 Configure build with the following post build actions.
 Order of the post build actions is important; first archive artifacts to be scanned, then scan artifacts with Protecode SC and finally generate a report using the returned results.
 
@@ -74,6 +75,22 @@ Order of the post build actions is important; first archive artifacts to be scan
     - *Show on Project page*
         - Set to `true`
 
+### Pipeline step
+
+You can use the ``protecodeScan`` step in your pipeline
+
+```
+protecodeScan credentialsId: 'protecode',
+    protecodeScGroup: 533,
+    scanAllArchivedArtifacts: true,
+    artifactsFilter: '*.ear'
+```
+
+The ``protecodeScan`` step supports the same options as the post-build action with the addition of:
+* *artifactFilter*: Only include artifacts matching this pattern. 
+The matcher uses the characters '?' and '*' to represent a single or multiple wildcard characters. 
+
+Results are written in the ``reports`` directory.
 
 ## License
 
