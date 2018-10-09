@@ -21,6 +21,8 @@ import java.util.List;
 
 public class ProtecodeScanStepExecutor extends SynchronousNonBlockingStepExecution<Void> implements ArtifactsProvider {
 
+    private static final long serialVersionUID = 1L;
+
     private transient final ProtecodeScanStep protecodeScanStep;
 
     protected ProtecodeScanStepExecutor(@Nonnull ProtecodeScanStep protecodeScanStep, @Nonnull StepContext context) {
@@ -97,7 +99,7 @@ public class ProtecodeScanStepExecutor extends SynchronousNonBlockingStepExecuti
         return artifacts;
     }
 
-    private final class BuildInformationAdapter implements BuildInformation {
+    private final static class BuildInformationAdapter implements BuildInformation {
         private final Run run;
         private final FilePath workspace;
 

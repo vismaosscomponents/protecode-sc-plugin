@@ -66,8 +66,7 @@ public class ProtecodeSc {
         }
     }
 
-    public static class CustomData
-    {
+    public static class CustomData {
     }
 
     public static class Results {
@@ -78,7 +77,7 @@ public class ProtecodeSc {
 
         private Summary summary;
 
-        private Collection<Component> components;
+        private List<Component> components;
 
         private Status status;
 
@@ -103,7 +102,7 @@ public class ProtecodeSc {
             return summary;
         }
 
-        public Collection<Component> getComponents() {
+        public List<Component> getComponents() {
             return components;
         }
 
@@ -211,7 +210,7 @@ public class ProtecodeSc {
         private long timestamp;
         @JsonProperty("matching-method")
         private String matchingMethod;
-        private Collection<String> fullpath;
+        private List<String> fullpath;
         private String type;
         @JsonProperty("source-match")
         private String sourceMatch;
@@ -257,20 +256,20 @@ public class ProtecodeSc {
 
     public static class Component {
         @JsonProperty("extended-objects")
-        private Collection<ExtendedObject> extendedObjects;
+        private List<ExtendedObject> extendedObjects;
         private License license;
         private String lib;
-        private Collection<String> tags;
+        private List<String> tags;
         private String url;
-        private Collection<String> cpe;
-        private Collection<Vuln> vulns;
+        private List<String> cpe;
+        private List<Vuln> vulns;
         private Boolean latest_cmp;
         private String latest_version;
         private String version;
         private CoverityScan coverity_scan;
         @JsonProperty("latest-version")
         private String latestVersion;
-        private Collection<String> objects;
+        private List<String> objects;
         private String codetype;
         private String short_version;
         private String homepage;
@@ -279,7 +278,7 @@ public class ProtecodeSc {
         @JsonProperty("upstream-source")
         private String upstreamSource;
 
-        public Collection<ExtendedObject> getExtendedObjects() {
+        public List<ExtendedObject> getExtendedObjects() {
             return extendedObjects;
         }
 
@@ -291,7 +290,7 @@ public class ProtecodeSc {
             return lib;
         }
 
-        public Collection<String> getTags() {
+        public List<String> getTags() {
             return tags;
         }
 
@@ -299,11 +298,11 @@ public class ProtecodeSc {
             return url;
         }
 
-        public Collection<String> getCpe() {
+        public List<String> getCpe() {
             return cpe;
         }
 
-        public Collection<Vuln> getVulns() {
+        public List<Vuln> getVulns() {
             return vulns;
         }
 
@@ -327,7 +326,7 @@ public class ProtecodeSc {
             return latestVersion;
         }
 
-        public Collection<String> getObjects() {
+        public List<String> getObjects() {
             return objects;
         }
 
@@ -433,18 +432,22 @@ public class ProtecodeSc {
         private boolean exact;
         private VulnDetails vuln;
         @JsonProperty("timestamp-objects")
-        private Collection<String> timestampObjects;
+        private List<String> timestampObjects;
 
         public boolean isExact() {
             return exact;
         }
 
-        public Collection<String> getTimestampObjects() {
+        public List<String> getTimestampObjects() {
             return timestampObjects;
         }
 
         public VulnDetails getVuln() {
             return vuln;
+        }
+
+        public void setVuln(VulnDetails vuln) {
+            this.vuln = vuln;
         }
     }
 

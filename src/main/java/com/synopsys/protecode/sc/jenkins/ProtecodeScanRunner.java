@@ -197,9 +197,9 @@ public class ProtecodeScanRunner {
                     build.getAbsoluteUrl());
             try {
                 connector.init();
-                String protecodeScIdentifier = connector.sendFile(artifact, scanMetadata);
+                String protecodeProductId = connector.sendFile(artifact, scanMetadata);
                 identifiers
-                        .add(new ApiPoller(connector, protecodeScIdentifier));
+                        .add(new ApiPoller(connector, protecodeProductId));
             } catch (KeyManagementException | NoSuchAlgorithmException e) {
                 throw new IOException(e);
             } catch (ApiAuthenticationException e) {
@@ -289,15 +289,15 @@ public class ProtecodeScanRunner {
     }
 
     private static class ApiPoller {
-        private String id;
+        private String productId;
         private boolean scanned;
         private HttpApiConnector connector;
         private HttpApiConnector.PollResult result;
 
-        ApiPoller(HttpApiConnector connector, String id) {
+        ApiPoller(HttpApiConnector connector, String productId) {
             this.connector = connector;
 
-            this.id = id;
+            this.productId = productId;
         }
 
         boolean isScanned() {
@@ -306,7 +306,7 @@ public class ProtecodeScanRunner {
 
         HttpApiConnector.PollResult poll() {
 
-            result = connector.poll(id);
+            result = connector.poll(productId);
             if (result.isReady()) {
                 scanned = true;
             }

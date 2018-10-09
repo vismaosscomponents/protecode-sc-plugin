@@ -31,9 +31,6 @@ public class ProtecodeScTest {
 
         ProtecodeSc protecodeSc = mapper.readValue(ProtecodeScTest.class.getResourceAsStream("/samplereport.json"), ProtecodeSc.class);
 
-        Path path = Paths.get("output.json");
-        byte[] strToBytes = mapper.writeValueAsString(protecodeSc).getBytes();
-
-        Files.write(path, strToBytes);
+        mapper.writeValueAsString(protecodeSc);
     }
 }

@@ -1,17 +1,45 @@
 /*******************************************************************************
-* Copyright (c) 2016 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
+ * Copyright (c) 2016 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ *******************************************************************************/
 
 package com.synopsys.protecode.sc.jenkins;
 
-import java.io.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+import com.google.common.net.UrlEscapers;
+import com.synopsys.protecode.sc.jenkins.ProtecodeSc.Status;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+import java.io.BufferedInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -20,28 +48,6 @@ import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-
-import javax.net.ssl.*;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
-import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.client.HttpUrlConnectorProvider;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
-
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
-import com.google.common.net.UrlEscapers;
-import com.synopsys.protecode.sc.jenkins.ProtecodeSc.Status;
 
 public class HttpApiConnector {
 
@@ -56,9 +62,9 @@ public class HttpApiConnector {
     private Client client;
 
     public HttpApiConnector(PrintStream log, Artifact artifact,
-            String protecodeScHost, String protecodeScGroup,
-            String protecodeScUser, String protecodeScPass,
-            boolean doNotCheckCerts) {
+                            String protecodeScHost, String protecodeScGroup,
+                            String protecodeScUser, String protecodeScPass,
+                            boolean doNotCheckCerts) {
         this.log = log;
         if (!protecodeScHost.endsWith("/")) {
             this.protecodeScHost = protecodeScHost + "/";
@@ -73,7 +79,7 @@ public class HttpApiConnector {
         this.doNotCheckCerts = doNotCheckCerts;
     }
 
-    private static TrustManager[] trustAllCerts = new TrustManager[] {
+    private static TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
                 @Override
                 public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -93,7 +99,7 @@ public class HttpApiConnector {
                         String authType) {
                     // intentionally left blank
                 }
-            } };
+            }};
 
     private static HostnameVerifier allowAllHostnames = new HostnameVerifier() {
 
@@ -124,8 +130,8 @@ public class HttpApiConnector {
 
         Client client = (doNotCheckCerts && useSsl)
                 ? ClientBuilder.newBuilder().sslContext(sc)
-                        .hostnameVerifier(allowAllHostnames).withConfig(config)
-                        .build()
+                .hostnameVerifier(allowAllHostnames).withConfig(config)
+                .build()
                 : ClientBuilder.newBuilder().withConfig(config).build();
 
         HttpAuthenticationFeature feature = HttpAuthenticationFeature
@@ -164,6 +170,7 @@ public class HttpApiConnector {
 
     /**
      * Initialize HTTP client
+     *
      * @throws KeyManagementException
      * @throws NoSuchAlgorithmException
      */
@@ -174,15 +181,14 @@ public class HttpApiConnector {
 
     /**
      * Send artifact for scanning
+     *
      * @param artifact
      * @param scanMetaData
-     * @return SHA1 for the file
+     * @return product id
      * @throws IOException
-     * @throws NoSuchAlgorithmException
-     *      When SHA-1 is not available
-     * @throws ApiException
-     *      When connection fails
-     *      When authentication fails
+     * @throws NoSuchAlgorithmException When SHA-1 is not available
+     * @throws ApiException             When connection fails
+     *                                  When authentication fails
      */
     public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, ApiException, NoSuchAlgorithmException, InterruptedException {
         String filename = artifact.getName();
@@ -190,7 +196,7 @@ public class HttpApiConnector {
         log.println("Uploading file to Protecode SC at " + protecodeScHost);
         InputStream fileInputStream = new BufferedInputStream(artifact.getData());
 
-        byte[] authData = (protecodeScUser+":"+protecodeScPass).getBytes(StandardCharsets.UTF_8);
+        byte[] authData = (protecodeScUser + ":" + protecodeScPass).getBytes(StandardCharsets.UTF_8);
         String encodedAuthData = javax.xml.bind.DatatypeConverter.printBase64Binary(authData);
 
         URL url = new URL(protecodeScHost + "api/upload/" + UrlEscapers.urlPathSegmentEscaper()
@@ -200,7 +206,7 @@ public class HttpApiConnector {
         httpCon.setFixedLengthStreamingMode(artifact.getSize());
         httpCon.setDoOutput(true);
         httpCon.setRequestMethod("PUT");
-        httpCon.setRequestProperty("Authorization", "Basic "+encodedAuthData);
+        httpCon.setRequestProperty("Authorization", "Basic " + encodedAuthData);
         httpCon.setRequestProperty("Group-Appcheck", protecodeScGroup);
         httpCon.setRequestProperty("Delete-Binary-Appcheck", "true");
 
@@ -259,7 +265,7 @@ public class HttpApiConnector {
             } else if (httpCon.getResponseCode() == 400) {
                 throw new ApiAuthenticationException("Protecode SC upload failed, bad request (please check your credentials and upload group)");
             } else if (httpCon.getResponseCode() == 409) {
-                return sha1;
+                throw new IllegalStateException("Protecide SC upload failed, returned code 409");
             }
         } catch (IOException e) {
             log.println(e.getMessage());
@@ -270,7 +276,7 @@ public class HttpApiConnector {
         try {
             JsonNode resultJson = mapper.readTree(httpCon.getInputStream());
             JsonNode results = resultJson.get("results");
-            return results.get("sha1sum").asText();
+            return results.get("product_id").asText();
         } catch (IOException e) {
             log.println(e.getMessage());
         } finally {
@@ -279,9 +285,11 @@ public class HttpApiConnector {
         return sha1;
     }
 
-    public PollResult poll(String identifier) {
-        WebTarget target = client.target(
-                protecodeScHost + "appcheck/api/app/" + identifier + "/");
+    public PollResult poll(String productId) {
+        WebTarget target = client.target(protecodeScHost)
+                .path("api/product/")
+                .path(productId)
+                .path("/");
         Response r = target.request().accept(MediaType.APPLICATION_JSON).get();
         ProtecodeSc response = r.readEntity(ProtecodeSc.class);
 
@@ -293,10 +301,19 @@ public class HttpApiConnector {
         }
         Status responseStatus = response.getResults().getStatus();
         response.setArtifactName(artifact.getName());
+        // Busy: we continue polling
+        if (Status.B.equals(responseStatus)) {
+            return new PollResult(false, false);
+        }
+
         if (Status.R.equals(responseStatus)) {
+            int componentsFound = response.getResults().getComponents().size();
             log.println("Artifact " + artifact.getName()
-                    + " polling success, status "
-                    + response.getMeta().getCode());
+                    + " polling success, meta response code "
+                    + response.getMeta().getCode() + ". Components found: " + componentsFound);
+            if (componentsFound == 0) {
+                return new PollResult(true, true, response, artifact.getName());
+            }
             if (response.getResults().getSummary().getVulnCount() != null) {
                 return new PollResult(true, response.getResults().getSummary()
                         .getVulnCount().getExact() == 0, response,
@@ -305,9 +322,8 @@ public class HttpApiConnector {
                 return new PollResult(true, false);
             }
         }
-        if (Status.B.equals(responseStatus)) {
-            return new PollResult(false, false);
-        }
+        log.println("Artifact " + artifact.getName()
+                + " polling completed, status is " + responseStatus);
         return new PollResult(true, false);
 
     }
@@ -323,7 +339,7 @@ public class HttpApiConnector {
         private String artifactName;
 
         public PollResult(boolean ready, boolean ok, ProtecodeSc protecodeSc,
-                String artifactName) {
+                          String artifactName) {
             this.ready = ready;
             this.ok = ok;
             this.protecodeSc = protecodeSc;
