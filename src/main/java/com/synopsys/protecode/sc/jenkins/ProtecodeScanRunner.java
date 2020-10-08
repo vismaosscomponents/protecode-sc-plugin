@@ -2,7 +2,6 @@ package com.synopsys.protecode.sc.jenkins;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -15,6 +14,7 @@ import hudson.FilePath;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -168,22 +168,19 @@ public class ProtecodeScanRunner {
         log.println("Getting Protecode SC host and credentials");
         String host = descriptor.getProtecodeScHost();
 
-        StandardUsernamePasswordCredentials creds = CredentialsMatchers
+        StringCredentials creds = CredentialsMatchers
                 .firstOrNull(
                         CredentialsProvider.lookupCredentials(
-                                StandardUsernamePasswordCredentials.class,
-                                Jenkins.getInstance(), ACL.SYSTEM,
+                                StringCredentials.class,
+                                Jenkins.get(), ACL.SYSTEM,
                                 new HostnameRequirement(host)),
                         CredentialsMatchers.withId(credentialsId));
         if (creds == null) {
-            log.println("No Protecode SC credentials found");
+            log.println("No Protecode SC credentials found (lookup for Secret text credentials)");
             return false;
         }
-        String protecodeScUser = creds.getUsername();
-        String protecodeScPass = creds.getPassword().getPlainText();
 
-        log.println("Connecting to Protecode SC host at " + host + " as "
-                + protecodeScUser);
+        log.println("Connecting to Protecode SC host at " + host);
         boolean dontCheckCert = descriptor.isDontCheckCert();
         final List<Artifact> artifacts = artifactsProvider.getArtifacts();
         List<ApiPoller> identifiers = new ArrayList<>();
@@ -191,7 +188,7 @@ public class ProtecodeScanRunner {
             log.println("Scanning artifact " + artifact.getName());
             HttpApiConnector connector = new HttpApiConnector(
                     log, artifact, host, protecodeScGroup,
-                    protecodeScUser, protecodeScPass, dontCheckCert);
+                    creds.getSecret().getPlainText(), dontCheckCert);
             Map<String, String> scanMetadata = ImmutableMap.of("build-id",
                     "" + build.getNumber(), "build-url",
                     build.getAbsoluteUrl());

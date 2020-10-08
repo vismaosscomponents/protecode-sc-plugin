@@ -9,7 +9,7 @@ http://www.synopsys.com/software/protecode/Pages/default.aspx
 
 ## Build instructions
 
-The plugin is tested with Jenkins 2.7.3 or newer and it is written to be Java 1.7
+The plugin is tested with Jenkins 2.222.1 or newer and it is written to be Java 1.8
 compatible.
 
 The plugin is built with Maven 3.x. The command to create the package to be
@@ -91,6 +91,8 @@ The ``protecodeScan`` step supports the same options as the post-build action wi
 The matcher uses the characters '?' and '*' to represent a single or multiple wildcard characters. 
 
 Results are written in the ``reports`` directory.
+
+Credentials must be of type "secret text".
 
 ## License
 

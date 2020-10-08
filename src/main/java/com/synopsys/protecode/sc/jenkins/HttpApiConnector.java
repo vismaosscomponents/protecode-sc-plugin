@@ -21,7 +21,6 @@ import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.HttpUrlConnectorProvider;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -43,7 +42,6 @@ import java.io.PrintStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,10 +49,9 @@ import java.util.Map;
 
 public class HttpApiConnector {
 
+    private String token;
     private String protecodeScHost;
     private String protecodeScGroup;
-    private String protecodeScUser;
-    private String protecodeScPass;
     private boolean doNotCheckCerts;
     private Artifact artifact;
     private boolean useSsl;
@@ -63,7 +60,7 @@ public class HttpApiConnector {
 
     public HttpApiConnector(PrintStream log, Artifact artifact,
                             String protecodeScHost, String protecodeScGroup,
-                            String protecodeScUser, String protecodeScPass,
+                            String token,
                             boolean doNotCheckCerts) {
         this.log = log;
         if (!protecodeScHost.endsWith("/")) {
@@ -73,9 +70,8 @@ public class HttpApiConnector {
         }
         this.useSsl = this.protecodeScHost.startsWith("https");
         this.artifact = artifact;
-        this.protecodeScUser = protecodeScUser;
         this.protecodeScGroup = protecodeScGroup;
-        this.protecodeScPass = protecodeScPass;
+        this.token = token;
         this.doNotCheckCerts = doNotCheckCerts;
     }
 
@@ -134,10 +130,7 @@ public class HttpApiConnector {
                 .build()
                 : ClientBuilder.newBuilder().withConfig(config).build();
 
-        HttpAuthenticationFeature feature = HttpAuthenticationFeature
-                .basicBuilder().credentials(protecodeScUser, protecodeScPass)
-                .build();
-        client.register(feature);
+        client.register(new HttpAuthenticationTokenFilter(token));
         client.register(jaxbProvider);
         return client;
     }
@@ -196,9 +189,6 @@ public class HttpApiConnector {
         log.println("Uploading file to Protecode SC at " + protecodeScHost);
         InputStream fileInputStream = new BufferedInputStream(artifact.getData());
 
-        byte[] authData = (protecodeScUser + ":" + protecodeScPass).getBytes(StandardCharsets.UTF_8);
-        String encodedAuthData = javax.xml.bind.DatatypeConverter.printBase64Binary(authData);
-
         URL url = new URL(protecodeScHost + "api/upload/" + UrlEscapers.urlPathSegmentEscaper()
                 .escape(protecodeScFileName));
 
@@ -206,7 +196,7 @@ public class HttpApiConnector {
         httpCon.setFixedLengthStreamingMode(artifact.getSize());
         httpCon.setDoOutput(true);
         httpCon.setRequestMethod("PUT");
-        httpCon.setRequestProperty("Authorization", "Basic " + encodedAuthData);
+        httpCon.setRequestProperty("Authorization", "Bearer " + token);
         httpCon.setRequestProperty("Group-Appcheck", protecodeScGroup);
         httpCon.setRequestProperty("Delete-Binary-Appcheck", "true");
 

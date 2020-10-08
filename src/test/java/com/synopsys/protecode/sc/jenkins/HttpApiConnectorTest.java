@@ -13,20 +13,21 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
 public class HttpApiConnectorTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpApiConnector.class);
 
-    private static final String PROTECODE_SC_USER = System.getenv("PROTECODE_SC_USER");
-    private static final String PROTECODE_SC_PASS = System.getenv("PROTECODE_SC_PASS");
+    private static final String PROTECODE_SC_TOKEN = System.getenv("PROTECODE_SC_TOKEN");
     private static final String PROTECODE_SC_GROUP = System.getenv("PROTECODE_SC_GROUP");
 
     @BeforeClass
     public static void setup() {
         // skip tests if env variables are not set
-        assumeNotNull(PROTECODE_SC_USER, PROTECODE_SC_PASS, PROTECODE_SC_GROUP);
+        assumeNotNull(PROTECODE_SC_TOKEN, PROTECODE_SC_GROUP);
     }
 
     @Test
@@ -58,7 +59,7 @@ public class HttpApiConnectorTest {
     private static HttpApiConnector.PollResult getPollResult(String name) throws KeyManagementException, NoSuchAlgorithmException, IOException, ApiException, InterruptedException {
         PrintStream printStream = new PrintStream(System.out);
         Artifact artifact = new Artifact(new File(Thread.currentThread().getContextClassLoader().getResource(name).getFile()));
-        HttpApiConnector httpApiConnector = new HttpApiConnector(printStream, artifact, "https://protecode-sc.com/", PROTECODE_SC_GROUP, PROTECODE_SC_USER, PROTECODE_SC_PASS, false);
+        HttpApiConnector httpApiConnector = new HttpApiConnector(printStream, artifact, "https://protecode-sc.com/", PROTECODE_SC_GROUP, PROTECODE_SC_TOKEN, false);
         httpApiConnector.init();
         String protecodeScIdentifier = httpApiConnector.sendFile(artifact, new HashMap<String, String>());
         LOGGER.info(protecodeScIdentifier);
