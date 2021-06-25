@@ -43,7 +43,7 @@ public class ProtecodeSc {
     }
 
     public static enum Status {
-        B("Busy"), R("Ready"), F("Fail");
+        B("Busy"), R("Ready"), F("Fail"), S("Scanning"), D("Downloading"), P("P-Unknown");
 
         private String value;
 
@@ -79,7 +79,7 @@ public class ProtecodeSc {
 
         private List<Component> components;
 
-        private Status status;
+        private String status;
 
         private String report_url;
 
@@ -110,7 +110,7 @@ public class ProtecodeSc {
             return id;
         }
 
-        public Status getStatus() {
+        public String getStatus() {
             return status;
         }
 

@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import com.google.common.net.UrlEscapers;
-import com.synopsys.protecode.sc.jenkins.ProtecodeSc.Status;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import org.glassfish.jersey.client.ClientConfig;
@@ -289,14 +288,11 @@ public class HttpApiConnector {
                     + response.getMeta().getCode());
             return new PollResult(true, false);
         }
-        Status responseStatus = response.getResults().getStatus();
+        String responseStatus = response.getResults().getStatus();
         response.setArtifactName(artifact.getName());
-        // Busy: we continue polling
-        if (Status.B.equals(responseStatus)) {
-            return new PollResult(false, false);
-        }
 
-        if (Status.R.equals(responseStatus)) {
+        // Status R and F are final
+        if ("R".equals(responseStatus)) {
             int componentsFound = response.getResults().getComponents().size();
             log.println("Artifact " + artifact.getName()
                     + " polling success, meta response code "
@@ -312,10 +308,14 @@ public class HttpApiConnector {
                 return new PollResult(true, false);
             }
         }
-        log.println("Artifact " + artifact.getName()
-                + " polling completed, status is " + responseStatus);
-        return new PollResult(true, false);
-
+        if ("F".equals(responseStatus)) {
+            log.println("Artifact " + artifact.getName()
+                    + " polling completed, status is " + responseStatus);
+            return new PollResult(true, false);
+        }
+        // Busy: we continue polling
+        log.println("Artifact " + artifact.getName() + " status is: " + responseStatus + ", continuing polling");
+        return new PollResult(false, false);
     }
 
     public void close() {
